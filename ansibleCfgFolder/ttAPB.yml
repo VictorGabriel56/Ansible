@@ -1,0 +1,24 @@
+- hosts: cdtlab
+  remote_user: root
+  tasks:
+    - name: "Apache e MySQL"
+      yum: name={{ item }} state=present
+      with_items:
+        - httpd
+        - mysql-server
+        - python-mysqldb
+
+    - name: "Subindo ao iniciar"
+      service: name={{ item }} state=started enable=yes
+      with_items:
+        - apache2
+        - mysql
+
+    - name: "Criando DB"
+      mysql_db: name=dbCDT
+                state=present
+
+    - name: "Usuarios DB"
+      mysql_user: name=a1
+                  password=123456
+                  priv=*.*:ALL state=present

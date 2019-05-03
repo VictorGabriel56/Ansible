@@ -1,0 +1,79 @@
+---
+- hosts: test1
+  tasks:
+    - name: Install yum utils
+      yum:
+        name: yum-utils
+        state: latest
+
+    - name: Install device-mapper-persistent-data
+      yum:
+        name: device-mapper-persistent-data
+        state: latest
+
+    - name: Install lvm2
+      yum:
+        name: lvm2
+        state: latest
+
+    - name: Add Docker repo
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docer-ce.repo
+      become: yes
+      sudo: yes 
+
+    - name: Enable Docker Edge repo
+      ini_file:
+        dest: /etc/yum.repos.d/docer-ce.repo
+        section: 'docker-ce-edge'
+        option: enabled
+        value: 0
+      become: yes
+
+    - name: Enable Docker Test repo
+      ini_file:
+        dest: /etc/yum.repos.d/docer-ce.repo
+        section: 'docker-ce-test'
+        option: enabled
+        value: 0
+      become: yes
+
+    - name: Install Docker
+      package:
+        name: docker-ce
+        state: latest
+      become: yes
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+      become: yes
+    
+    - name : RUN Redis on Docker
+      command: "docker run --name gitlab-redis -d \ 
+      --volume /srv/docker/gitlab/redis:/var/lib/redis \ 
+      sameersbn/redis:latest"
+
+    - name : RUN PostgresSQL on Docker
+      command: "docker run --name gitlab-postgresql -d \ 
+      --env 'DB_NAME=gitlabhq_production' \ 
+      --env 'DB_USER=gitlab' --env 'DB_PASS=password' \ 
+      --env 'DB_EXTENSION=pg_trgm' \ 
+      --volume /srv/docker/gitlab/postgresql:/var/lib/postgresql \ 
+      sameersbn/postgresql:latest"
+
+    - name : RUN Git Lab on Docker
+      command: "docker run --name gitlab -d \ 
+      --link gitlab-postgresql:postgresql \
+      --link gitlab-redis:redisio \ 
+      --publish 10022:22 --publish 10080:80 \ 
+      --env 'GITLAB_PORT=10080' \
+      --env 'GITLAB_SSH_PORT=10022' \ 
+      --env 'GITLAB_SECRETS_DB_KEY_BASE=long-and-random-alpha-numeric-string' \ 
+      --env 'GITLAB_SECRETS_SECRET_KEY_BASE=long-and-random-alpha-numeric-string' \ 
+      --env 'GITLAB_SECRETS_OTP_KEY_BASE=long-and-random-alpha-numeric-string' \ 
+      --volume /srv/docker/gitlab/gitlab:/home/git/data \ 
+      sameersbn/gitlab:latest"
