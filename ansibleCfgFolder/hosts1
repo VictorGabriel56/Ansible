@@ -1,0 +1,9 @@
+[all:vars]
+ansible_connetion=ssh
+
+[cdt1:vars]
+ansible_ssh_user=$USER
+ansible_ssh_pass=$PASS
+
+[cdt1]
+$IP
